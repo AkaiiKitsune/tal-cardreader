@@ -11,7 +11,7 @@ static bool HasCard = false;
 typedef void (*callbackTouch)(i32, i32, u8[168], u64);
 callbackTouch touchCallback;
 u64 touchData;
-static char AccessID[21] = "00000000000000000001";
+char AccessID[21] = "00000000000000000001";
 static u8 cardData[168] = {0x01, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x92, 0x2E, 0x58, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00,
                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x5C, 0x97, 0x44, 0xF0, 0x88, 0x04, 0x00, 0x43, 0x26, 0x2C, 0x33, 0x00, 0x04,
                            0x06, 0x10, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
@@ -23,6 +23,12 @@ static u8 cardData[168] = {0x01, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
 
 void PollReader()
 {
+    if (HasCard) // A card scan is already in progress
+    {
+        Sleep(1000);
+        return;
+    }
+
     // update HID devices
     EnterCriticalSection(&CARDIO_HID_CRIT_SECTION);
     for (size_t device_no = 0; device_no < CARDIO_HID_CONTEXTS_LENGTH; device_no++)
@@ -45,10 +51,11 @@ void PollReader()
 
                 if (waitingForTouch)
                 {
-                    // Convert card to proper format
-                    sprintf(AccessID, "%020llu", device->u.usage64[0]);
-                    // Format the AccessID in a way that doesn't crash the game.
-                    // memset(AccessID, '0', 10);
+                    // Properly format the AccessID
+                    u64 ReversedAccessID;
+                    for (int i = 0; i < 8; i++)
+                        ReversedAccessID = (ReversedAccessID << 8) | device->u.usage_value[i];
+                    sprintf(AccessID, "%020llu", ReversedAccessID);
 
                     HasCard = true;
                 }

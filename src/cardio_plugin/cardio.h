@@ -30,12 +30,12 @@
 #include <hidsdi.h>
 #include <setupapi.h>
 
-
 extern CRITICAL_SECTION CARDIO_HID_CRIT_SECTION;
 extern struct cardio_hid_device *CARDIO_HID_CONTEXTS;
 extern size_t CARDIO_HID_CONTEXTS_LENGTH;
 
-struct cardio_hid_device {
+struct cardio_hid_device
+{
     LPWSTR dev_path;
     HANDLE dev_handle;
     OVERLAPPED read_state;
@@ -43,9 +43,9 @@ struct cardio_hid_device {
     BOOL io_pending;
 
     BYTE report_buffer[128];
-    union {
+    union
+    {
         unsigned char usage_value[128];
-        uint64_t usage64[8];
     } u;
     DWORD read_size;
 
@@ -55,13 +55,15 @@ struct cardio_hid_device {
     USHORT collection_length;
 };
 
-typedef enum cardio_poll_value {
+typedef enum cardio_poll_value
+{
     HID_POLL_ERROR = 0,
     HID_POLL_CARD_NOT_READY = 1,
     HID_POLL_CARD_READY = 2,
 } cardio_hid_poll_value_t;
 
-typedef enum cardio_hid_card_type {
+typedef enum cardio_hid_card_type
+{
     HID_CARD_NONE = 0,
     HID_CARD_ISO_15693 = 0x41,
     HID_CARD_ISO_18092 = 0x42,
@@ -83,4 +85,4 @@ cardio_hid_poll_value_t cardio_hid_device_poll(struct cardio_hid_device *ctx);
 
 cardio_hid_card_type_t cardio_hid_device_read(struct cardio_hid_device *ctx);
 
-#endif //SPICETOOLS_CARDIO_HID_H
+#endif // SPICETOOLS_CARDIO_HID_H
