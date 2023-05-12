@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Vscode specific
+.vscode/
+
+subprojects/minhook
+subprojects/tomlc99

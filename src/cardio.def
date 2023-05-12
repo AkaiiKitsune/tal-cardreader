@@ -1,0 +1,6 @@
+LIBRARY cardio
+
+EXPORTS
+    Init
+    WaitTouch
+    Exit

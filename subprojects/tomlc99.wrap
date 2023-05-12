@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/cktan/tomlc99
+revision = 894902820a3ea2f1ec470cd7fe338bde54045cf5
+# Overlays subproject/packagefiles/tomlc99 over the fresh git
+# clone of tomlc99
+patch_directory = tomlc99

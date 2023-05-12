@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/TsudaKageyu/minhook
+revision = 426cb6880035ee3cceed05384bb3f2db01a20a15
+# Overlays subproject/packagefiles/minhook over the fresh git
+# clone of minhook
+patch_directory = minhook
