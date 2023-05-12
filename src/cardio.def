@@ -2,5 +2,6 @@ LIBRARY cardio
 
 EXPORTS
     Init
+    Update
     WaitTouch
     Exit
