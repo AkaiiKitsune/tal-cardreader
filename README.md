@@ -1,6 +1,6 @@
 # TAL CardReader
 
-This is a plugin that allows you to use USB HID card (cardio) and SmartCard readers with [TaikoArcadeLoader](https://github.com/BroGamer4256/TaikoArcadeLoader)
+This is a plugin that allows you to use CardIO and SmartCard readers with [TaikoArcadeLoader](https://github.com/BroGamer4256/TaikoArcadeLoader)
 
 # Acknowledgments
 
@@ -24,7 +24,7 @@ Copy cardreader.dll to your TAL's plugin folder. You should be able to see the p
 # Settings
 
 - using_smartcard (default : false)
-  _Reader type defaults to CardIO, if you want to use a SmartCard reader, set this to true_.
+  * _Reader type defaults to CardIO, if you want to use a SmartCard reader, set this to true._
 
 - read_cooldown (default : 20)
-  _Cooldown between each read attempt, a low value (below 15) can lead to game crashes, a high value (above 500) will break SmartCard readers_.
+  * _Cooldown between each read attempt, a low value (below 15) can lead to game crashes, a high value (above 500) will break SmartCard readers._
