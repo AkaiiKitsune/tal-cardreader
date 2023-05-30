@@ -38,7 +38,8 @@ CRITICAL_SECTION CARDIO_HID_CRIT_SECTION;
 struct cardio_hid_device *CARDIO_HID_CONTEXTS = NULL;
 size_t CARDIO_HID_CONTEXTS_LENGTH = 0;
 
-void hid_ctx_init(struct cardio_hid_device *ctx) {
+void hid_ctx_init(struct cardio_hid_device *ctx)
+{
     ctx->dev_path = NULL;
     ctx->dev_handle = INVALID_HANDLE_VALUE;
     ctx->initialized = FALSE;
@@ -54,30 +55,36 @@ void hid_ctx_init(struct cardio_hid_device *ctx) {
     memset(&ctx->caps, 0, sizeof(HIDP_CAPS));
 }
 
-void hid_ctx_free(struct cardio_hid_device *ctx) {
-    if (ctx->dev_path != NULL) {
+void hid_ctx_free(struct cardio_hid_device *ctx)
+{
+    if (ctx->dev_path != NULL)
+    {
         HeapFree(GetProcessHeap(), 0, ctx->dev_path);
         ctx->dev_path = NULL;
     }
 
-    if (ctx->dev_handle != INVALID_HANDLE_VALUE) {
+    if (ctx->dev_handle != INVALID_HANDLE_VALUE)
+    {
         CancelIo(ctx->dev_handle);
         CloseHandle(ctx->dev_handle);
         ctx->dev_handle = INVALID_HANDLE_VALUE;
     }
 
-    if (ctx->pp_data != NULL) {
+    if (ctx->pp_data != NULL)
+    {
         HidD_FreePreparsedData(ctx->pp_data);
         ctx->pp_data = NULL;
     }
 
-    if (ctx->collection != NULL) {
+    if (ctx->collection != NULL)
+    {
         HeapFree(GetProcessHeap(), 0, ctx->collection);
         ctx->collection = NULL;
     }
 }
 
-void hid_ctx_reset(struct cardio_hid_device *ctx) {
+void hid_ctx_reset(struct cardio_hid_device *ctx)
+{
     ctx->initialized = FALSE;
     ctx->io_pending = FALSE;
     ctx->read_size = 0;
@@ -91,31 +98,37 @@ void hid_ctx_reset(struct cardio_hid_device *ctx) {
     memset(&ctx->caps, 0, sizeof(HIDP_CAPS));
 }
 
-BOOL cardio_hid_init() {
+BOOL cardio_hid_init()
+{
     size_t i, contexts_size;
 
     InitializeCriticalSectionAndSpinCount(&CARDIO_HID_CRIT_SECTION, 0x00000400);
 
     contexts_size = DEFAULT_ALLOCATED_CONTEXTS * sizeof(struct cardio_hid_device);
-    CARDIO_HID_CONTEXTS = (struct cardio_hid_device *) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, contexts_size);
-    if (CARDIO_HID_CONTEXTS == NULL) {
+    CARDIO_HID_CONTEXTS = (struct cardio_hid_device *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, contexts_size);
+    if (CARDIO_HID_CONTEXTS == NULL)
+    {
         return FALSE;
     }
 
     CARDIO_HID_CONTEXTS_LENGTH = DEFAULT_ALLOCATED_CONTEXTS;
 
-    for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++) {
+    for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++)
+    {
         hid_ctx_init(&CARDIO_HID_CONTEXTS[i]);
     }
 
     return TRUE;
 }
 
-void cardio_hid_close() {
+void cardio_hid_close()
+{
     size_t i;
 
-    if (CARDIO_HID_CONTEXTS_LENGTH > 0) {
-        for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++) {
+    if (CARDIO_HID_CONTEXTS_LENGTH > 0)
+    {
+        for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++)
+        {
             hid_ctx_free(&CARDIO_HID_CONTEXTS[i]);
         }
 
@@ -127,14 +140,17 @@ void cardio_hid_close() {
     }
 }
 
-BOOL cardio_hid_add_device(LPCWSTR device_path) {
+BOOL cardio_hid_add_device(LPCWSTR device_path)
+{
     BOOL res = FALSE;
     size_t i;
 
     EnterCriticalSection(&CARDIO_HID_CRIT_SECTION);
 
-    for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++) {
-        if (!CARDIO_HID_CONTEXTS[i].initialized) {
+    for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++)
+    {
+        if (!CARDIO_HID_CONTEXTS[i].initialized)
+        {
             res = cardio_hid_scan_device(&CARDIO_HID_CONTEXTS[i], device_path);
             break;
         }
@@ -145,16 +161,19 @@ BOOL cardio_hid_add_device(LPCWSTR device_path) {
     return res;
 }
 
-BOOL cardio_hid_remove_device(LPCWSTR device_path) {
+BOOL cardio_hid_remove_device(LPCWSTR device_path)
+{
     BOOL res = FALSE;
     size_t i;
 
     EnterCriticalSection(&CARDIO_HID_CRIT_SECTION);
 
-    for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++) {
+    for (i = 0; i < CARDIO_HID_CONTEXTS_LENGTH; i++)
+    {
         // The device paths in `hid_scan` are partially lower-case, so perform a
         // case-insensitive comparison here
-        if (CARDIO_HID_CONTEXTS[i].initialized && (_wcsicmp(device_path, CARDIO_HID_CONTEXTS[i].dev_path) == 0)) {
+        if (CARDIO_HID_CONTEXTS[i].initialized && (_wcsicmp(device_path, CARDIO_HID_CONTEXTS[i].dev_path) == 0))
+        {
             hid_ctx_reset(&CARDIO_HID_CONTEXTS[i]);
             res = TRUE;
             break;
@@ -169,68 +188,78 @@ BOOL cardio_hid_remove_device(LPCWSTR device_path) {
 /*
  * Scan HID device to see if it is a HID reader
  */
-BOOL cardio_hid_scan_device(struct cardio_hid_device *ctx, LPCWSTR device_path) {
+BOOL cardio_hid_scan_device(struct cardio_hid_device *ctx, LPCWSTR device_path)
+{
     NTSTATUS res;
 
     size_t dev_path_size = (wcslen(device_path) + 1) * sizeof(WCHAR);
-    ctx->dev_path = (LPWSTR) HeapAlloc(GetProcessHeap(), 0, dev_path_size);
-    if (ctx->dev_path == NULL) {
+    ctx->dev_path = (LPWSTR)HeapAlloc(GetProcessHeap(), 0, dev_path_size);
+    if (ctx->dev_path == NULL)
+    {
         return FALSE;
     }
 
     memcpy(ctx->dev_path, device_path, dev_path_size);
     ctx->dev_path[dev_path_size - 1] = '\0';
     ctx->dev_handle = CreateFileW(
-            ctx->dev_path,
-            GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL,
-            OPEN_EXISTING,
-            FILE_FLAG_OVERLAPPED,
-            NULL);
-    if (ctx->dev_handle == INVALID_HANDLE_VALUE) {
-        printWarning ("%s (%s): could not open device: %ls\n", __func__, module, ctx->dev_path);
+        ctx->dev_path,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_OVERLAPPED,
+        NULL);
+    if (ctx->dev_handle == INVALID_HANDLE_VALUE)
+    {
+        printError("%s (%s): Could not open device: %ls\n", __func__, module, ctx->dev_path);
         HeapFree(GetProcessHeap(), 0, ctx->dev_path);
         ctx->dev_path = NULL;
         ctx->dev_handle = INVALID_HANDLE_VALUE;
         return FALSE;
     }
 
-    if (!HidD_GetPreparsedData(ctx->dev_handle, &ctx->pp_data)) {
+    if (!HidD_GetPreparsedData(ctx->dev_handle, &ctx->pp_data))
+    {
         goto end;
     }
 
     res = HidP_GetCaps(ctx->pp_data, &ctx->caps);
-    if (res != HIDP_STATUS_SUCCESS) {
+    if (res != HIDP_STATUS_SUCCESS)
+    {
         goto end;
     }
 
     // 0xffca is the card reader usage page ID
-    if (ctx->caps.UsagePage != CARD_READER_USAGE_PAGE) {
+    if (ctx->caps.UsagePage != CARD_READER_USAGE_PAGE)
+    {
         goto end;
-    } else if (ctx->caps.NumberInputValueCaps == 0) {
+    }
+    else if (ctx->caps.NumberInputValueCaps == 0)
+    {
         goto end;
     }
     ctx->collection_length = ctx->caps.NumberInputValueCaps;
-    ctx->collection = (HIDP_VALUE_CAPS *) HeapAlloc(GetProcessHeap(), 0,
-                                                    ctx->collection_length * sizeof(HIDP_VALUE_CAPS));
-    if (ctx->collection == NULL) {
+    ctx->collection = (HIDP_VALUE_CAPS *)HeapAlloc(GetProcessHeap(), 0,
+                                                   ctx->collection_length * sizeof(HIDP_VALUE_CAPS));
+    if (ctx->collection == NULL)
+    {
         goto end;
     }
     res = HidP_GetValueCaps(
-            HidP_Input,
-            ctx->collection,
-            &ctx->collection_length,
-            ctx->pp_data);
-    if (res != HIDP_STATUS_SUCCESS) {
+        HidP_Input,
+        ctx->collection,
+        &ctx->collection_length,
+        ctx->pp_data);
+    if (res != HIDP_STATUS_SUCCESS)
+    {
         goto end;
     }
 
-    printWarning ("%s (%s): detected reader: %ls\n", __func__, module, ctx->dev_path);
+    printInfo("%s (%s): Detected reader: %ls\n", __func__, module, ctx->dev_path);
     ctx->initialized = TRUE;
     return TRUE;
 
-    end:
+end:
     hid_ctx_reset(ctx);
     return FALSE;
 }
@@ -242,7 +271,8 @@ BOOL cardio_hid_scan_device(struct cardio_hid_device *ctx, LPCWSTR device_path) 
  * Usage 0x41 => ISO_15693
  * Usage 0x42 => ISO_18092 (FeliCa)
  */
-BOOL cardio_hid_scan() {
+BOOL cardio_hid_scan()
+{
     BOOL res = TRUE;
     SP_DEVINFO_DATA devinfo_data;
     SP_DEVICE_INTERFACE_DATA device_interface_data;
@@ -259,7 +289,8 @@ BOOL cardio_hid_scan() {
     // HID collection opening needs `DIGCF_DEVICEINTERFACE` and ignore
     // disconnected devices
     device_info_set = SetupDiGetClassDevs(&hid_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-    if (device_info_set == INVALID_HANDLE_VALUE) {
+    if (device_info_set == INVALID_HANDLE_VALUE)
+    {
         res = FALSE;
         goto end;
     }
@@ -270,44 +301,51 @@ BOOL cardio_hid_scan() {
 
     // `SetupDiEnumDeviceInterfaces` must come before `SetupDiEnumDeviceInfo`
     // else `SetupDiEnumDeviceInterfaces` will fail with error 259
-    while (SetupDiEnumDeviceInterfaces(device_info_set, NULL, &hid_guid, device_index, &device_interface_data)) {
+    while (SetupDiEnumDeviceInterfaces(device_info_set, NULL, &hid_guid, device_index, &device_interface_data))
+    {
 
         // Get the required size
-        if (SetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, NULL, 0, &dwSize, NULL)) {
+        if (SetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, NULL, 0, &dwSize, NULL))
+        {
             goto cont;
         }
 
-        device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_W *) HeapAlloc(GetProcessHeap(), 0, dwSize);
-        if (device_interface_detail_data == NULL) {
+        device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_W *)HeapAlloc(GetProcessHeap(), 0, dwSize);
+        if (device_interface_detail_data == NULL)
+        {
             goto cont;
         }
 
         device_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
 
-        if (!SetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, device_interface_detail_data, dwSize, NULL, NULL)) {
+        if (!SetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, device_interface_detail_data, dwSize, NULL, NULL))
+        {
             goto cont;
         }
 
-        if (!SetupDiEnumDeviceInfo(device_info_set, device_index, &devinfo_data)) {
+        if (!SetupDiEnumDeviceInfo(device_info_set, device_index, &devinfo_data))
+        {
             goto cont;
         }
 
-        if (!IsEqualGUID((const void *)&hidclass_guid, (const void *)&devinfo_data.ClassGuid)) {
+        if (!IsEqualGUID((const void *)&hidclass_guid, (const void *)&devinfo_data.ClassGuid))
+        {
             goto cont;
         }
 
         EnterCriticalSection(&CARDIO_HID_CRIT_SECTION);
 
-        if (hid_devices == CARDIO_HID_CONTEXTS_LENGTH) {
+        if (hid_devices == CARDIO_HID_CONTEXTS_LENGTH)
+        {
             CARDIO_HID_CONTEXTS_LENGTH++;
 
-            CARDIO_HID_CONTEXTS = (struct cardio_hid_device *) HeapReAlloc(
-                    GetProcessHeap(),
-                    HEAP_ZERO_MEMORY,
-                    CARDIO_HID_CONTEXTS,
-                    CARDIO_HID_CONTEXTS_LENGTH * sizeof(struct cardio_hid_device)
-            );
-            if (CARDIO_HID_CONTEXTS == NULL) {
+            CARDIO_HID_CONTEXTS = (struct cardio_hid_device *)HeapReAlloc(
+                GetProcessHeap(),
+                HEAP_ZERO_MEMORY,
+                CARDIO_HID_CONTEXTS,
+                CARDIO_HID_CONTEXTS_LENGTH * sizeof(struct cardio_hid_device));
+            if (CARDIO_HID_CONTEXTS == NULL)
+            {
                 LeaveCriticalSection(&CARDIO_HID_CRIT_SECTION);
                 HeapFree(GetProcessHeap(), 0, device_interface_detail_data);
                 res = FALSE;
@@ -317,14 +355,16 @@ BOOL cardio_hid_scan() {
             hid_ctx_init(&CARDIO_HID_CONTEXTS[hid_devices]);
         }
 
-        if (cardio_hid_scan_device(&CARDIO_HID_CONTEXTS[hid_devices], device_interface_detail_data->DevicePath)) {
+        if (cardio_hid_scan_device(&CARDIO_HID_CONTEXTS[hid_devices], device_interface_detail_data->DevicePath))
+        {
             hid_devices++;
         }
 
         LeaveCriticalSection(&CARDIO_HID_CRIT_SECTION);
 
-        cont:
-        if (device_interface_detail_data) {
+    cont:
+        if (device_interface_detail_data)
+        {
             HeapFree(GetProcessHeap(), 0, device_interface_detail_data);
             device_interface_detail_data = NULL;
         }
@@ -332,30 +372,36 @@ BOOL cardio_hid_scan() {
         device_index++;
     }
 
-    end:
-    if (device_info_set != INVALID_HANDLE_VALUE) {
+end:
+    if (device_info_set != INVALID_HANDLE_VALUE)
+    {
         SetupDiDestroyDeviceInfoList(device_info_set);
     }
 
     return res;
 }
 
-cardio_hid_poll_value_t cardio_hid_device_poll(struct cardio_hid_device *ctx) {
+cardio_hid_poll_value_t cardio_hid_device_poll(struct cardio_hid_device *ctx)
+{
     DWORD error = 0;
 
-    if (!ctx->initialized) {
+    if (!ctx->initialized)
+    {
         return HID_POLL_ERROR;
     }
 
-    if (ctx->io_pending) {
+    if (ctx->io_pending)
+    {
         // Do this if inside to not have more `ReadFile` overlapped I/O requests.
         // If there are more calls to `ReadFile` than `GetOverlappedResult` then
         // eventually the working set quota will run out triggering error 1426
         // (ERROR_WORKING_SET_QUOTA).
-        if (HasOverlappedIoCompleted(&ctx->read_state)) {
+        if (HasOverlappedIoCompleted(&ctx->read_state))
+        {
             ctx->io_pending = FALSE;
 
-            if (!GetOverlappedResult(ctx->dev_handle, &ctx->read_state, &ctx->read_size, FALSE)) {
+            if (!GetOverlappedResult(ctx->dev_handle, &ctx->read_state, &ctx->read_size, FALSE))
+            {
                 return HID_POLL_ERROR;
             }
 
@@ -363,21 +409,29 @@ cardio_hid_poll_value_t cardio_hid_device_poll(struct cardio_hid_device *ctx) {
 
             return HID_POLL_CARD_READY;
         }
-    } else {
+    }
+    else
+    {
         if (!ReadFile(
                 ctx->dev_handle,
                 &ctx->report_buffer,
                 sizeof(ctx->report_buffer),
                 &ctx->read_size,
-                &ctx->read_state)) {
+                &ctx->read_state))
+        {
             error = GetLastError();
 
-            if (error == ERROR_IO_PENDING) {
+            if (error == ERROR_IO_PENDING)
+            {
                 ctx->io_pending = TRUE;
-            } else {
+            }
+            else
+            {
                 return HID_POLL_ERROR;
             }
-        } else {
+        }
+        else
+        {
             // The read completed right away
             return HID_POLL_CARD_READY;
         }
@@ -386,51 +440,58 @@ cardio_hid_poll_value_t cardio_hid_device_poll(struct cardio_hid_device *ctx) {
     return HID_POLL_CARD_NOT_READY;
 }
 
-cardio_hid_card_type_t cardio_hid_device_read(struct cardio_hid_device *hid_ctx) {
+cardio_hid_card_type_t cardio_hid_device_read(struct cardio_hid_device *hid_ctx)
+{
 
     // check if not initialized
-    if (!hid_ctx->initialized) {
+    if (!hid_ctx->initialized)
+    {
         return HID_CARD_NONE;
     }
 
     // check if IO is pending
-    if (hid_ctx->io_pending) {
+    if (hid_ctx->io_pending)
+    {
         return HID_CARD_NONE;
     }
 
     // check if nothing was read
-    if (hid_ctx->read_size == 0) {
+    if (hid_ctx->read_size == 0)
+    {
         return HID_CARD_NONE;
     }
 
     // iterate collections
-    for (int i = 0; i < hid_ctx->collection_length; i++) {
+    for (int i = 0; i < hid_ctx->collection_length; i++)
+    {
         HIDP_VALUE_CAPS *item = &hid_ctx->collection[i];
 
         // get usages
         NTSTATUS res = HidP_GetUsageValueArray(
-                HidP_Input,
-                CARD_READER_USAGE_PAGE,
-                0, // LinkCollection
-                item->NotRange.Usage,
-                (PCHAR) &hid_ctx->u.usage_value,
-                sizeof(hid_ctx->u.usage_value),
-                hid_ctx->pp_data,
-                (PCHAR) &hid_ctx->report_buffer,
-                hid_ctx->read_size);
+            HidP_Input,
+            CARD_READER_USAGE_PAGE,
+            0, // LinkCollection
+            item->NotRange.Usage,
+            (PCHAR)&hid_ctx->u.usage_value,
+            sizeof(hid_ctx->u.usage_value),
+            hid_ctx->pp_data,
+            (PCHAR)&hid_ctx->report_buffer,
+            hid_ctx->read_size);
 
         // loop through the collection to find the entry that handles this report ID
-        if (res == HIDP_STATUS_INCOMPATIBLE_REPORT_ID) {
+        if (res == HIDP_STATUS_INCOMPATIBLE_REPORT_ID)
+        {
             continue;
         }
 
         // check if failed
-        if (res != HIDP_STATUS_SUCCESS) {
+        if (res != HIDP_STATUS_SUCCESS)
+        {
             return HID_CARD_NONE;
         }
 
         // return card type
-        return (cardio_hid_card_type_t) item->NotRange.Usage;
+        return (cardio_hid_card_type_t)item->NotRange.Usage;
     }
 
     return HID_CARD_NONE;

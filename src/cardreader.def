@@ -1,4 +1,4 @@
-LIBRARY cardio
+LIBRARY cardreader
 
 EXPORTS
     Init

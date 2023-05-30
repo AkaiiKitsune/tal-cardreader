@@ -26,7 +26,7 @@
 #ifndef SPICETOOLS_CARDIO_HID_H
 #define SPICETOOLS_CARDIO_HID_H
 
-#include "../helpers.h"
+#include "../../helpers.h"
 #include <hidsdi.h>
 #include <setupapi.h>
 

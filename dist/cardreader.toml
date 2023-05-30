@@ -1,0 +1,8 @@
+# Smart Card Reader ==================
+using_smartcard = false
+
+# Card Read Cooldown =================
+read_cooldown = 20
+# Default is 20. Set to a higher value if you notice any weird behaviour.
+# Too small of a value can lead to weird behaviour and game crashes. 
+# Too high of a value will result in an unresponsive card reader.

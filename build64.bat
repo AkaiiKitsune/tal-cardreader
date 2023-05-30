@@ -7,5 +7,6 @@ meson configure build64
 ninja -C build64
 
 mkdir bin
-copy build64\src\cardio.dll bin\cardio.dll
+copy build64\src\cardreader.dll bin\cardreader.dll
+copy dist\cardreader.toml bin\cardreader.toml
 pause

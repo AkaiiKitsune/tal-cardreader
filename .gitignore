@@ -56,3 +56,5 @@ dkms.conf
 
 subprojects/minhook
 subprojects/tomlc99
+
+bin/*
