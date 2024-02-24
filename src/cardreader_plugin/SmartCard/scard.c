@@ -68,7 +68,7 @@ void scard_poll(uint8_t *buf, SCARDCONTEXT _hContext, LPCTSTR _readerName, uint8
     LONG lRet = 0;
     SCARDHANDLE hCard;
     DWORD dwActiveProtocol;
-    for (int retry = 0; retry < 10; retry++)
+    for (int retry = 0; retry < 100; retry++) // retry times has to be increased since poll rate is set to 500ms
     {
         if ((lRet = SCardConnect(_hContext, _readerName, SCARD_SHARE_EXCLUSIVE, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &hCard, &dwActiveProtocol)) == SCARD_S_SUCCESS)
             break;
@@ -87,17 +87,6 @@ void scard_poll(uint8_t *buf, SCARDCONTEXT _hContext, LPCTSTR _readerName, uint8
     LPCSCARD_IO_REQUEST pci = dwActiveProtocol == SCARD_PROTOCOL_T1 ? SCARD_PCI_T1 : SCARD_PCI_T0;
     DWORD cbRecv = MAX_APDU_SIZE;
     BYTE pbRecv[MAX_APDU_SIZE];
-    if ((lRet = SCardTransmit(hCard, pci, PICC_OPERATING_PARAM_CMD, sizeof(PICC_OPERATING_PARAM_CMD), NULL, pbRecv, &cbRecv)) != SCARD_S_SUCCESS)
-    {
-        printError("%s (%s): Error setting PICC params: 0x%08X\n", __func__, module, lRet);
-        return;
-    }
-
-    if (cbRecv > 2 && pbRecv[0] != PICC_SUCCESS && pbRecv[1] != PICC_OPERATING_PARAMS)
-    {
-        printError("%s (%s): PICC params not valid 0x%02X != 0x%02X\n", __func__, module, pbRecv[1], PICC_OPERATING_PARAMS);
-        return;
-    }
 
     // Read ATR to determine card type.
     TCHAR szReader[200];
@@ -267,6 +256,45 @@ bool scard_init()
         {
             printInfo("%s (%s): Found reader: %s\n", __func__, module, reader);
             readerCount++;
+
+            // Connect to reader and send PICC operating params command
+            LONG lRet = 0;
+            SCARDHANDLE hCard;
+            DWORD dwActiveProtocol;
+            lRet = SCardConnect(hContext, reader, SCARD_SHARE_DIRECT, 0, &hCard, &dwActiveProtocol);
+            if (lRet != SCARD_S_SUCCESS)
+            {
+                printError("%s (%s): Error connecting to the reader: 0x%08X\n", __func__, module, lRet);
+                continue;
+            }
+            printInfo("%s (%s): Connected to reader: %s, sending PICC operating params command\n", __func__, module, reader);
+
+            // set the reader params
+            lRet = 0;
+            DWORD cbRecv = MAX_APDU_SIZE;
+            BYTE pbRecv[MAX_APDU_SIZE];
+            lRet = SCardControl(hCard, SCARD_CTL_CODE(3500), PICC_OPERATING_PARAM_CMD, sizeof(PICC_OPERATING_PARAM_CMD), pbRecv, cbRecv, &cbRecv);
+            Sleep(100);
+            if (lRet != SCARD_S_SUCCESS)
+            {
+                printError("%s (%s): Error setting PICC params: 0x%08X\n", __func__, module, lRet);
+                return FALSE;
+            }
+
+            if (cbRecv > 2 && pbRecv[0] != PICC_SUCCESS && pbRecv[1] != PICC_OPERATING_PARAMS)
+            {
+                printError("%s (%s): PICC params not valid 0x%02X != 0x%02X\n", __func__, module, pbRecv[1], PICC_OPERATING_PARAMS);
+                return FALSE;
+            }
+
+            // Disconnect from reader
+            if ((lRet = SCardDisconnect(hCard, SCARD_LEAVE_CARD)) != SCARD_S_SUCCESS)
+            {
+                printError("%s (%s): Failed SCardDisconnect: 0x%08X\n", __func__, module, lRet);
+            }
+            else{
+                printInfo("%s (%s): Disconnected from reader: %s, this is expected behavior\n", __func__, module, reader);
+            }
         }
 
         // If we have at least two readers, assign readers to slots as necessary.
