@@ -17,6 +17,10 @@ static bool HasCard = false;
 bool usingSmartCard = false;
 int readCooldown = 200;
 
+typedef(QRCALL_proc)(char id[21]);
+QRCALL_proc *QRCALL;
+HANDLE bnusio_dll;
+
 typedef void (*callbackTouch)(i32, i32, u8[168], u64);
 callbackTouch touchCallback;
 u64 touchData;
@@ -77,7 +81,7 @@ static unsigned int __stdcall reader_poll_thread_proc(void *ctx)
         {
             printWarning("%s (%s): Read card %02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
 
-            if (waitingForTouch) // Check if game is waiting for a card.
+            if (waitingForTouch || QRCALL) // Check if game is waiting for a card or a qr code.
             {
                 // Properly format the AccessID
                 u64 ReversedAccessID;
@@ -153,6 +157,17 @@ void reader_runner_stop()
 
 void Init()
 {
+    bnusio_dll = LoadLibrary(".\\bnusio.dll"); /*Explicit Load*/
+    if (bnusio_dll)
+    {
+        printWarning("%s (%s): Got bnusio !\n", __func__, module);
+        QRCALL = GetProcAddress(bnusio_dll, "qr_call");
+        if (QRCALL)
+            printWarning("%s (%s): Got QRCALL, using QR emulator !\n", __func__, module);
+        else
+            printWarning("%s (%s): Couldn't find QRCALL, using card emulator !\n", __func__, module);
+    }
+
     printWarning("%s (%s): Starting HID Service...\n", __func__, module);
 
     // Read config
@@ -199,9 +214,15 @@ void Update()
 
         // Insert card in game
         printInfo("%s (%s): Inserting Card %s, with ChipID %s\n", __func__, module, AccessID, ChipID);
-        memcpy(cardData + 0x2C, ChipID, 33);
-        memcpy(cardData + 0x50, AccessID, 21);
-        touchCallback(0, 0, cardData, touchData);
+
+        if (QRCALL)
+            QRCALL(AccessID); // For CHN
+        else
+        {
+            memcpy(cardData + 0x2C, ChipID, 33);
+            memcpy(cardData + 0x50, AccessID, 21);
+            touchCallback(0, 0, cardData, touchData);
+        }
 
         HasCard = false;
     }
