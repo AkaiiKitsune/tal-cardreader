@@ -4,7 +4,7 @@ This is a plugin that allows you to use CardIO and SmartCard readers with [Taiko
 
 # Acknowledgments
 
-This is a plugin destined to be used with [BroGamer4256](https://github.com/BroGamer4256)'s TaikoArcadeLoader.
+This is a plugin destined to be used with [BroGamer4256](https://github.com/BroGamer4256)'s TaikoArcadeLoader. More specifically with esuo1198's [fork](https://github.com/esuo1198/TaikoArcadeLoader)
 
 CardIO and SmartCard implementation taken from [Spicetools](https://github.com/spicetools/spicetools) and adapted with the help of [CrazyRedMachine](https://github.com/CrazyRedMachine) (Huge thanks!)
 
