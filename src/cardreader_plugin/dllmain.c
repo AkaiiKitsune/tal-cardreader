@@ -10,25 +10,13 @@ static bool READER_POLL_STOP_FLAG;
 // SmartCard Specific
 
 // Game specific
-static bool waitingForTouch = false;
 static bool HasCard = false;
 
 // Misc
 bool usingSmartCard = false;
 int readCooldown = 200;
 
-typedef void (*callbackTouch)(i32, i32, u8[168], u64);
-callbackTouch touchCallback;
-u64 touchData;
 char AccessID[21] = "00000000000000000001";
-static u8 cardData[168] = {0x01, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x92, 0x2E, 0x58, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00,
-                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x5C, 0x97, 0x44, 0xF0, 0x88, 0x04, 0x00, 0x43, 0x26, 0x2C, 0x33, 0x00, 0x04,
-                           0x06, 0x10, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
-                           0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30, 0x30, 0x30,
-                           0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00,
-                           0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4E, 0x42, 0x47, 0x49, 0x43, 0x36,
-                           0x00, 0x00, 0xFA, 0xE9, 0x69, 0x00, 0xF6, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static unsigned int __stdcall reader_poll_thread_proc(void *ctx)
 {
@@ -77,19 +65,13 @@ static unsigned int __stdcall reader_poll_thread_proc(void *ctx)
         {
             printWarning("%s (%s): Read card %02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
 
-            if (waitingForTouch) // Check if game is waiting for a card.
-            {
-                // Properly format the AccessID
-                u64 ReversedAccessID;
-                for (int i = 0; i < 8; i++)
-                    ReversedAccessID = (ReversedAccessID << 8) | UID[i];
-                sprintf(AccessID, "%020llu", ReversedAccessID);
+            // Properly format the AccessID
+            u64 ReversedAccessID;
+            for (int i = 0; i < 8; i++)
+                ReversedAccessID = (ReversedAccessID << 8) | UID[i];
+            sprintf(AccessID, "%020llu", ReversedAccessID);
 
-                waitingForTouch = false; // We don't want to read more cards unless the game asks us to, this is a failsafe to avoid weird behaviour.
-                HasCard = true;
-            }
-            else // Game wasn't checking for cards yet.
-                printError("%s (%s): Card %02X%02X%02X%02X%02X%02X%02X%02X was rejected, still waiting for WaitTouch()\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
+            HasCard = true;
         }
     }
 
@@ -189,31 +171,29 @@ void Init()
         NULL);
 }
 
-void Update()
+void UsingQr()
+{
+}
+
+bool CheckQr()
 {
     if (HasCard)
     {
-        // Generating a ChipID Derived from the AccessID
-        char ChipID[33] = "000000000000";
-        strcat(ChipID, AccessID);
-
         // Insert card in game
-        printInfo("%s (%s): Inserting Card %s, with ChipID %s\n", __func__, module, AccessID, ChipID);
-
-        memcpy(cardData + 0x2C, ChipID, 33);
-        memcpy(cardData + 0x50, AccessID, 21);
-        touchCallback(0, 0, cardData, touchData);
-
-        HasCard = false;
+        printInfo("%s (%s): Inserting QR Code %s\n", __func__, module, AccessID);
+        return TRUE;
     }
+    return FALSE;
 }
 
-void WaitTouch(i32 (*callback)(i32, i32, u8[168], u64), u64 data) // This is called everytime the game expects a card to be read
+int GetQr(int len_limit, uint8_t *buffer)
 {
-    printInfo("%s (%s): Waiting for touch\n", __func__, module);
-    waitingForTouch = true;
-    touchCallback = callback;
-    touchData = data;
+    HasCard = FALSE;
+    char tempAccessID[30];
+    strcpy(tempAccessID, "BNTTCNID"); // Appending "BNTTCNID" so the qrcode gets used as a login code
+    strcat(tempAccessID, AccessID);
+    memcpy(buffer, tempAccessID, 30);
+    return 30;
 }
 
 void Exit()

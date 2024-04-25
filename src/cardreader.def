@@ -2,6 +2,7 @@ LIBRARY cardreader
 
 EXPORTS
     Init
-    Update
-    WaitTouch
+    UsingQr
+    CheckQr
+    GetQr
     Exit
