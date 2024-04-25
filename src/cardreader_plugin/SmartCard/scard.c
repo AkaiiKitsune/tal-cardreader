@@ -292,9 +292,12 @@ bool scard_init()
             {
                 printError("%s (%s): Failed SCardDisconnect: 0x%08X\n", __func__, module, lRet);
             }
-            else{
+            else
+            {
                 printInfo("%s (%s): Disconnected from reader: %s, this is expected behavior\n", __func__, module, reader);
             }
+
+            break;
         }
 
         // If we have at least two readers, assign readers to slots as necessary.
@@ -333,6 +336,7 @@ bool scard_init()
                 reader_name_slots[1] = (LPTSTR)HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(TCHAR) * (readerNameLen + 1));
                 memcpy(reader_name_slots[1], &reader[0], (size_t)(readerNameLen + 1));
             }
+            break;
         }
 
         if (reader_name_slots[0])
