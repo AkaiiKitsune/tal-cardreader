@@ -37,59 +37,61 @@ static unsigned int __stdcall reader_poll_thread_proc(void *ctx)
         if (HasCard && !usingSmartCard) // A Cardio scan is already in progress, SmartCard doesn't need any extra cooldown.
         {
             Sleep(500);
-            return 0;
         }
-
-        uint8_t UID[8] = {0};
-
-        // update devices
-        if (!usingSmartCard) // CardIO
+        else
         {
-            EnterCriticalSection(&CARDIO_HID_CRIT_SECTION);
-            for (size_t device_no = 0; device_no < CARDIO_HID_CONTEXTS_LENGTH; device_no++)
-            {
-                struct cardio_hid_device *device = &CARDIO_HID_CONTEXTS[device_no];
 
-                // get status
-                cardio_hid_poll_value_t status = cardio_hid_device_poll(device);
-                if (status == HID_POLL_CARD_READY)
+            uint8_t UID[8] = {0};
+
+            // update devices
+            if (!usingSmartCard) // CardIO
+            {
+                EnterCriticalSection(&CARDIO_HID_CRIT_SECTION);
+                for (size_t device_no = 0; device_no < CARDIO_HID_CONTEXTS_LENGTH; device_no++)
                 {
+                    struct cardio_hid_device *device = &CARDIO_HID_CONTEXTS[device_no];
 
-                    // read card
-                    if (cardio_hid_device_read(device) == HID_CARD_NONE)
-                        continue;
+                    // get status
+                    cardio_hid_poll_value_t status = cardio_hid_device_poll(device);
+                    if (status == HID_POLL_CARD_READY)
+                    {
 
-                    // if card not empty
-                    if (*((uint64_t *)&device->u.usage_value[0]) > 0)
-                        for (int i = 0; i < 8; ++i)
-                            UID[i] = device->u.usage_value[i];
+                        // read card
+                        if (cardio_hid_device_read(device) == HID_CARD_NONE)
+                            continue;
+
+                        // if card not empty
+                        if (*((uint64_t *)&device->u.usage_value[0]) > 0)
+                            for (int i = 0; i < 8; ++i)
+                                UID[i] = device->u.usage_value[i];
+                    }
                 }
+                LeaveCriticalSection(&CARDIO_HID_CRIT_SECTION);
+                Sleep(readCooldown);
             }
-            LeaveCriticalSection(&CARDIO_HID_CRIT_SECTION);
-            Sleep(readCooldown);
-        }
-        else // SmartCard
-        {
-            scard_update(UID);
-        }
-
-        if (UID[0] > 0) // If a card was read, format it properly and set HasCard to true so the game can insert it on next frame.
-        {
-            printWarning("%s (%s): Read card %02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
-
-            if (waitingForTouch) // Check if game is waiting for a card.
+            else // SmartCard
             {
-                // Properly format the AccessID
-                u64 ReversedAccessID;
-                for (int i = 0; i < 8; i++)
-                    ReversedAccessID = (ReversedAccessID << 8) | UID[i];
-                sprintf(AccessID, "%020llu", ReversedAccessID);
-
-                waitingForTouch = false; // We don't want to read more cards unless the game asks us to, this is a failsafe to avoid weird behaviour.
-                HasCard = true;
+                scard_update(UID);
             }
-            else // Game wasn't checking for cards yet.
-                printError("%s (%s): Card %02X%02X%02X%02X%02X%02X%02X%02X was rejected, still waiting for WaitTouch()\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
+
+            if (UID[0] > 0) // If a card was read, format it properly and set HasCard to true so the game can insert it on next frame.
+            {
+                printWarning("%s (%s): Read card %02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
+
+                if (waitingForTouch) // Check if game is waiting for a card.
+                {
+                    // Properly format the AccessID
+                    u64 ReversedAccessID;
+                    for (int i = 0; i < 8; i++)
+                        ReversedAccessID = (ReversedAccessID << 8) | UID[i];
+                    sprintf(AccessID, "%020llu", ReversedAccessID);
+
+                    waitingForTouch = false; // We don't want to read more cards unless the game asks us to, this is a failsafe to avoid weird behaviour.
+                    HasCard = true;
+                }
+                else // Game wasn't checking for cards yet.
+                    printError("%s (%s): Card %02X%02X%02X%02X%02X%02X%02X%02X was rejected, still waiting for WaitTouch()\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
+            }
         }
     }
 
