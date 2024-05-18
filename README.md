@@ -16,8 +16,8 @@ Copy cardreader.dll and it's config file to your TAL's plugin folder (\Executabl
 
 *There are two versions of this plugin :*
 
-* For JPN or ASIA dumps, use the [CARD Insert](https://gitea.farewell.dev/AkaiiKitsune/tal-cardreader/releases/download/CARD/cardreader.zip) build.
-* If you're playing on CHN instead, use the [QR Insert](https://gitea.farewell.dev/AkaiiKitsune/tal-cardreader/releases/download/QR/cardreader.zip) build.
+* For JPN or ASIA dumps, use the [CARD Insert](https://gitea.farewell.dev/AkaiiKitsune/tal-cardreader/releases/download/CARD-Fix/cardreader-card.zip) build.
+* If you're playing on CHN instead, use the [QR Insert](https://gitea.farewell.dev/AkaiiKitsune/tal-cardreader/releases/download/QR-Fix/cardreader-qr.zip) build.
 
 If there's an error when you log-in, make sure you're using the right version for your game dump and that you're using an updated version of esuo1198's TAL fork (Commit [3920cc2](https://github.com/esuo1198/TaikoArcadeLoader/commit/3920cc2) and above !).
 
