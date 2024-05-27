@@ -21,6 +21,8 @@ typedef void (*callbackTouch)(i32, i32, u8[168], u64);
 callbackTouch touchCallback;
 u64 touchData;
 char AccessID[21] = "00000000000000000001";
+char card_id_str[21] = {0};
+
 static u8 cardData[168] = {0x01, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x92, 0x2E, 0x58, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00,
                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x5C, 0x97, 0x44, 0xF0, 0x88, 0x04, 0x00, 0x43, 0x26, 0x2C, 0x33, 0x00, 0x04,
                            0x06, 0x10, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
@@ -76,7 +78,11 @@ static unsigned int __stdcall reader_poll_thread_proc(void *ctx)
 
             if (UID[0] > 0) // If a card was read, format it properly and set HasCard to true so the game can insert it on next frame.
             {
-                printWarning("%s (%s): Read card %02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
+                for (int i = 0; i < 8; ++i)
+                    sprintf(&card_id_str[i * 2], "%02X", UID[i]);
+                card_id_str[16] = '\0';
+
+                printWarning("%s (%s): Read card %s\n", __func__, module, card_id_str);
 
                 if (waitingForTouch) // Check if game is waiting for a card.
                 {
@@ -90,7 +96,7 @@ static unsigned int __stdcall reader_poll_thread_proc(void *ctx)
                     HasCard = true;
                 }
                 else // Game wasn't checking for cards yet.
-                    printError("%s (%s): Card %02X%02X%02X%02X%02X%02X%02X%02X was rejected, still waiting for WaitTouch()\n", __func__, module, UID[0], UID[1], UID[2], UID[3], UID[4], UID[5], UID[6], UID[7]);
+                    printError("%s (%s): Card %s was rejected, still waiting for WaitTouch()\n", __func__, module, card_id_str);
             }
         }
     }
@@ -197,13 +203,13 @@ void Update()
     {
         // Generating a ChipID Derived from the AccessID
         char ChipID[33] = "000000000000";
-        strcat(ChipID, AccessID);
+        strcat(ChipID, card_id_str);
 
         // Insert card in game
-        printInfo("%s (%s): Inserting Card %s, with ChipID %s\n", __func__, module, AccessID, ChipID);
+        printInfo("%s (%s): Inserting Card %s, with ChipID %s\n", __func__, module, card_id_str, ChipID);
 
         memcpy(cardData + 0x2C, ChipID, 33);
-        memcpy(cardData + 0x50, AccessID, 21);
+        memcpy(cardData + 0x50, card_id_str, 21);
         touchCallback(0, 0, cardData, touchData);
 
         HasCard = false;
