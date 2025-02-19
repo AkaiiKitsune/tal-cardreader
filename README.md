@@ -21,6 +21,8 @@ Copy cardreader.dll and it's config file to your TAL's plugin folder (\Executabl
 
 If there's an error when you log-in, make sure you're using the right version for your game dump and that you're using an updated version of esuo1198's TAL fork (Commit [3920cc2](https://github.com/esuo1198/TaikoArcadeLoader/commit/3920cc2) and above !).
 
+If you're using ACR122U USB NFC Reader, make sure to also install the latest [driver](https://www.acs.com.hk/en/driver/3/acr122u-usb-nfc-reader/). Otherwise it might fail to initialise.
+
 # Settings
 
 - using_smartcard (default : false)
